@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Make Maven wrappers executable
+        run: |
+          chmod +x SlaveSerevice/mvnw
+          chmod +x MasterService/mvnw
+
       - name: Build Slave JAR
         run: |
           cd SlaveSerevice
