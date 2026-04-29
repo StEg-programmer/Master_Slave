@@ -1,0 +1,59 @@
+name: CI Build and Test
+
+on:
+  pull_request:
+  push:
+    branches: [ "Test" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build slave image
+        run: docker build -t slave ./SlaveSerevice
+
+      - name: Build master image
+        run: docker build -t master ./MasterService
+
+      - name: Create Docker network
+        run: docker network create app-network
+
+      - name: Run slave container
+        run: |
+          docker run -d \
+            --name slave \
+            --network app-network \
+            -p 8081:8081 \
+            slave
+
+      - name: Run master container
+        run: |
+          docker run -d \
+            --name master \
+            --network app-network \
+            -p 8080:8080 \
+            master
+
+      - name: Wait for services
+        run: sleep 20
+
+      - name: Test POST request
+        run: |
+          curl -f -X POST http://localhost:8080/master \
+            -H "Content-Type: application/json" \
+            -d '{"data":"hello"}'
+
+      - name: Test GET request
+        run: |
+          curl -f http://localhost:8080/master/1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop master slave || true
+          docker rm master slave || true
+          docker network rm app-network || true
